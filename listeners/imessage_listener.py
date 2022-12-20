@@ -1,22 +1,18 @@
 import re
-from threading import Thread
+from datetime import datetime, timedelta
 from imessage_reader.fetch_data import FetchData
 
-from datetime import datetime, timedelta
+from listeners.listener import Listener
 
 
-class iMessageListener:
+class iMessageListener(Listener):
 
     TARGET_SENDER = "22733"  # Notify.UW phone number
-
     TIME_REGEX = "(20[0-9]{2}-[0,1][0-9]-[0-3][0-9]) ([0-2][0-9]:[0-5][0-9]:[0-5][0-9])"
-    SLN_REGEX = "SLN: ([0-9]{5})"
 
     # Initialize object and iMessage reader
     def __init__(self, automator):
-        self.automator = automator
-        self.thread = None
-        self.is_running = False
+        super().__init__("iMessage Listener", automator)
 
         self.previous_message = None
         self.iMessage = FetchData()
@@ -40,60 +36,37 @@ class iMessageListener:
         return False
 
     # Scans inbox for unread Notify.UW messages
-    def listener(self, is_running):
-        while is_running():
-            # Extracts all Notify.UW messages that are less than 30 seconds old
-            messages = list(filter(self.extract, self.iMessage.get_messages()))
+    def listener_task(self):
+        # Extracts all Notify.UW messages that are less than 30 seconds old
+        messages = list(filter(self.extract, self.iMessage.get_messages()))
 
-            if len(messages) > 0:
-                # Get index of oldest unread message
-                try:
-                    index = messages.index(self.previous_message) + 1
-                except ValueError:
-                    index = 0
+        if len(messages) > 0:
+            # Get index of oldest unread message
+            try:
+                index = messages.index(self.previous_message) + 1
+            except ValueError:
+                index = 0
 
-                # Iterate through all unread messages
-                while index < len(messages):
-                    message = messages[index]
+            # Iterate through all unread messages
+            while index < len(messages):
+                message = messages[index]
 
-                    regex_result = re.search("SLN: ([0-9]{5})", str(message))
+                regex_result = re.search("SLN: ([0-9]{5})", str(message))
 
-                    if regex_result is not None:
-                        sln_code = regex_result.group(1)
+                if regex_result is not None:
+                    sln_code = regex_result.group(1)
 
-                        print(f"iMessage Listener: Course with SLN: {sln_code} has just opened up")
+                    print(f"iMessage Listener: Course with SLN: {sln_code} has just opened up")
 
-                        try:
-                            self.automator.register(sln_code)
-                        except Exception as e:
-                            print(f"iMessage Listener: Could not register for SLN: {sln_code} since "
-                                  f"Email Listener is currently registering for SLN: {e}")
+                    try:
+                        self.automator.register(sln_code)
+                    except Exception as e:
+                        print(f"iMessage Listener: Could not register for SLN: {sln_code} since "
+                              f"Email Listener is currently registering for SLN: {e}")
 
-                    index += 1
+                index += 1
 
-                self.previous_message = messages[-1]
+            self.previous_message = messages[-1]
 
-            else:
-                self.previous_message = None
-
-    # Starts listener in a new thread
-    def start(self):
-        if self.thread is not None or self.is_running:
-            print("iMessage Listener: Already listening for incoming Notify.UW texts")
-            return
-
-        self.is_running = True
-        self.thread = Thread(target=self.listener, args=(lambda: self.is_running,))
-        self.thread.start()
-        print("iMessage Listener: Now listening for incoming Notify.UW texts")
-
-    # Stops listener
-    def stop(self):
-        if self.thread is None or not self.is_running:
-            print("iMessage Listener: Already stopped listening for incoming Notify.UW texts")
-            return
-
-        self.is_running = False
-        self.thread.join()
-        self.thread = None
-        print("iMessage Listener: Stopped listening for incoming Notify.UW texts")
+        else:
+            self.previous_message = None
