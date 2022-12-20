@@ -28,10 +28,10 @@ class EmailListener:
             credentials_file.close()
 
             self.mail.login(credentials["gmail_user"], credentials["gmail_app_password"])
-            print("Email listener has been initialized")
+            print("Email Listener: Initialized")
 
         except imaplib.IMAP4.error:
-            print("Email listener is not set up correctly. Check your Gmail credentials")
+            print("Email Listener: Incorrect setup. Check your Gmail credentials")
             exit()
 
         except FileNotFoundError:
@@ -60,28 +60,32 @@ class EmailListener:
                     if regex_result is not None:
                         sln_code = regex_result.group(1)
 
-                        print(f"Course with SLN: {sln_code} has just opened up")
+                        print(f"Email Listener: Course with SLN: {sln_code} has just opened up")
 
-                        self.automator.register(sln_code)
+                        try:
+                            self.automator.register(sln_code)
+                        except Exception as e:
+                            print(f"Email Listener: Could not register for SLN: {sln_code} since "
+                                  f"iMessage Listener is currently registering for SLN: {e}")
 
     # Starts listener in a new thread
     def start(self):
         if self.thread is not None or self.is_running:
-            print("Already listening for incoming Notify.UW emails")
+            print("Email Listener: Already listening for incoming Notify.UW emails")
             return
 
         self.is_running = True
         self.thread = Thread(target=self.listener, args=(lambda: self.is_running,))
         self.thread.start()
-        print("Now listening for incoming Notify.UW emails")
+        print("Email Listener: Now listening for incoming Notify.UW emails")
 
     # Stops listener
     def stop(self):
         if self.thread is None or not self.is_running:
-            print("Already stopped listening for incoming Notify.UW emails")
+            print("Email Listener: Already stopped listening for incoming Notify.UW emails")
             return
 
         self.is_running = False
         self.thread.join()
         self.thread = None
-        print("Stopped listening for incoming Notify.UW emails")
+        print("Email Listener: Stopped listening for incoming Notify.UW emails")

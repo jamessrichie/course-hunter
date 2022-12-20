@@ -1,6 +1,7 @@
 import json
 import time
 import hashlib
+import selenium
 from selenium import webdriver
 from selenium.common import TimeoutException
 from selenium.webdriver.common.by import By
@@ -71,7 +72,7 @@ class Automator:
 
         # Check if credentials match those already verified
         if stored_credentials_hash == credentials_hash:
-            print("Automator is set-up correctly")
+            print("Automator: Initialized")
             return
 
         # Open the Safari browser
@@ -88,10 +89,10 @@ class Automator:
         try:
             element_present = EC.presence_of_element_located((By.CLASS_NAME, 'myuw-body'))
             WebDriverWait(browser, self.TIMEOUT).until(element_present)
-            print("Automator is set-up correctly")
+            print("Automator: Initialized")
 
         except TimeoutException:
-            print("Automator is not set up correctly. Check your UW Net ID credentials and 2FA cookies")
+            print("Automator: Incorrect setup. Check your UW Net ID credentials and 2FA cookies")
             exit()
 
         # Close browser once finished
@@ -105,16 +106,20 @@ class Automator:
     def register(self, sln_code):
         joint_add_sln_codes, joint_drop_sln_codes = self.get_joint_sln_codes(sln_code)
 
-        # Open the Safari browser
-        browser = webdriver.Safari()
-        browser.set_window_size(1300, 800)
+        try:
+            # Open the Safari browser
+            browser = webdriver.Safari()
+            browser.set_window_size(1300, 800)
+
+        except selenium.common.exceptions.SessionNotCreatedException:
+            raise Exception(sln_code)
 
         # Go to the registration page
         browser.get(self.TARGET_URL)
 
         # If login failed or could not reach registration page, then exit
         if not self.login(browser) or not self.wait_for_registration_page(browser):
-            print("Automator failed to send SLN(s): {} to registration".format(",".join(joint_add_sln_codes)))
+            print("Automator: Failed to send SLN(s): {} to registration".format(",".join(joint_add_sln_codes)))
             return
 
         # Populate the add SLN forms
@@ -145,20 +150,23 @@ class Automator:
         time.sleep(1)
 
         if not self.wait_for_registration_page(browser):
-            print("Automator has sent SLN(s): {} to registration, ".format(",".join(joint_add_sln_codes)) +
+            print("Automator: Sent SLN(s): {} to registration, ".format(",".join(joint_add_sln_codes)) +
                   "but timed out before being able to confirm your registration status")
 
         elif "Schedule not updated." in browser.page_source:
-            print("Automator has sent SLN(s): {} to registration, but did not get the spot(s)"
+            print("Automator: Sent SLN(s): {} to registration, but did not get the spot(s)"
                   .format(",".join(joint_add_sln_codes)))
 
         elif "Schedule updated." in browser.page_source:
-            print("Automator has successfully registered for SLN(s): {} and dropped SLN(s): {}"
+            print("Automator: Successfully registered for SLN(s): {} and dropped SLN(s): {}"
                   .format(",".join(joint_add_sln_codes), ",".join(joint_drop_sln_codes)))
 
         else:
-            print("Automator has sent SLN(s): {} to registration, ".format(",".join(joint_add_sln_codes)) +
+            print(joint_add_sln_codes)
+            print("Automator: Sent SLN(s): {} to registration, ".format(",".join(joint_add_sln_codes)) +
                   "but could not interpret the displayed registration status")
+
+        input()
 
     # Returns all SLN codes that must be added and dropped jointly with the supplied SLN code
     def get_joint_sln_codes(self, sln_code):
@@ -179,7 +187,7 @@ class Automator:
             return True
 
         except TimeoutException:
-            print("Timed out waiting for login page to load")
+            print("Automator: Timed out waiting for login page to load")
             return False
 
     # Wait for registration page to load
@@ -190,7 +198,7 @@ class Automator:
             return True
 
         except TimeoutException:
-            print("Timed out waiting for registration page to load")
+            print("Automator: Timed out waiting for registration page to load")
             return False
 
     # Logs into the configured UW NetID account

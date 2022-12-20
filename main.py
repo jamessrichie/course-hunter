@@ -2,7 +2,6 @@ from automator import Automator
 from listeners.email_listener import EmailListener
 from listeners.imessage_listener import iMessageListener
 
-
 if __name__ == "__main__":
 
     # List of SLN codes that must be added and dropped jointly. See README for more details
