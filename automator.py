@@ -166,8 +166,6 @@ class Automator:
             print("Automator: Sent SLN(s): {} to registration, ".format(",".join(joint_add_sln_codes)) +
                   "but could not interpret the displayed registration status")
 
-        input()
-
     # Returns all SLN codes that must be added and dropped jointly with the supplied SLN code
     def get_joint_sln_codes(self, sln_code):
         for joint_sln_codes in self.JOINT_SLN_CODES_LIST:
