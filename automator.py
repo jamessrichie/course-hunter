@@ -33,7 +33,7 @@ EXPIRATION_GRACE_PERIOD = 5
 
 # Converts credentials.json into a dict
 def extract_credentials():
-    credentials_file = open("credentials.json", "r")
+    credentials_file = open("config/credentials.json", "r")
     credentials = json.load(credentials_file)
     credentials_file.close()
 
@@ -79,7 +79,7 @@ def update_credentials(key, value):
     credentials = extract_credentials()
     credentials[key] = value
 
-    credentials_file = open("credentials.json", "w")
+    credentials_file = open("config/credentials.json", "w")
     json.dump(credentials, credentials_file, indent=2, sort_keys=True)
     credentials_file.close()
 

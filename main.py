@@ -18,7 +18,7 @@ def read_joint_registration():
 
 if __name__ == "__main__":
 
-    joint_registration_file = open("joint-registration.json", "r")
+    joint_registration_file = open("config/joint-registration.json", "r")
     joint_registration_list = list(filter(lambda elt: len(elt["add"]) > 0, json.load(joint_registration_file)["data"]))
 
     if len(joint_registration_list) > 0:
