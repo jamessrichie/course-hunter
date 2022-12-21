@@ -197,7 +197,7 @@ class Automator:
             expiration_timestamp = check_credentials_expiration()
 
             if expiration_timestamp is not None:
-                print("Automator: Verified active. Will expire in {} days on {}".format((expiration_timestamp - datetime.now()).days, expiration_timestamp.date()))
+                print("Automator: Verified cookies active. Will expire in {} days on {}".format((expiration_timestamp - datetime.now()).days, expiration_timestamp.date()))
                 return
             else:
                 print("Automator: Detected cookies expired. Must regenerate")
@@ -263,28 +263,35 @@ class Automator:
 
         # If login failed or could not reach registration page, then exit
         if not self.login(browser) or not wait_for_registration_page(browser):
-            print("Automator: Failed to send SLN(s): {} to registration".format(",".join(joint_add_sln_codes)))
+            print("Automator: Could not reach registration page".format(",".join(joint_add_sln_codes)))
             return
 
-        # Populate the SLN form
-        sln_index = 0
-        table_index = 1
-        while sln_index < len(joint_add_sln_codes):
-            input_field = browser.find_element(By.NAME, f"sln{table_index}")
-            input_field_value = input_field.get_attribute('value')
+        try:
+            # Populate the SLN form
+            sln_index = 0
+            table_index = 1
+            while sln_index < len(joint_add_sln_codes):
+                input_field = browser.find_element(By.NAME, f"sln{table_index}")
+                input_field_value = input_field.get_attribute('value')
 
-            # If input field is empty, it is editable. Then add SLN code
-            if input_field_value == "":
-                input_field.send_keys(joint_add_sln_codes[sln_index])
-                sln_index += 1
+                # If input field is empty, it is editable. Then add SLN code
+                if input_field_value == "":
+                    input_field.send_keys(joint_add_sln_codes[sln_index])
+                    sln_index += 1
 
-            # If input field is not empty, it stores an SLN code
-            # If we want to drop this SLN code, click the associated checkbox
-            elif input_field_value in joint_drop_sln_codes:
-                check_box = browser.find_element(By.NAME, f"action{table_index}")
-                check_box.click()
+                # If input field is not empty, it stores an SLN code
+                # If we want to drop this SLN code, click the associated checkbox
+                elif input_field_value in joint_drop_sln_codes:
+                    check_box = browser.find_element(By.NAME, f"action{table_index}")
+                    check_box.click()
 
-            table_index += 1
+                table_index += 1
+
+        except selenium.common.exceptions.NoSuchElementException:
+            print("Automator: Registration page looks different than expected. "
+                  "Please confirm that the registration page is not down")
+
+        input()
 
         # Clicks the submit button
         browser.find_elements(By.TAG_NAME, "input")[-1].click()

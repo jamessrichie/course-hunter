@@ -63,6 +63,6 @@ class EmailListener(Listener):
 
                     try:
                         self.automator.register(sln_code)
-                    except Exception as e:
-                        print(f"Email Listener: Could not register for SLN: {sln_code} since "
-                              f"iMessage Listener is currently registering for SLN: {e}")
+                    except Exception:
+                        print(f"Email Listener: Could not register for SLN: {sln_code} "
+                              "since another listener is currently controlling Safari")
