@@ -18,21 +18,25 @@ def read_joint_registration():
 
 if __name__ == "__main__":
 
-    joint_registration_file = open("config/joint-registration.json", "r")
-    joint_registration_list = list(filter(lambda elt: len(elt["add"]) > 0, json.load(joint_registration_file)["data"]))
+    try:
+        joint_registration_file = open("config/joint-registration.json", "r")
+        joint_registration_list = list(filter(lambda elt: len(elt["add"]) > 0, json.load(joint_registration_file)["data"]))
 
-    if len(joint_registration_list) > 0:
-        read_joint_registration()
-        input("Press enter to confirm this setting: ")
-        print()
+        if len(joint_registration_list) > 0:
+            read_joint_registration()
+            input("Press enter to confirm this setting: ")
+            print()
 
-    # Initialize registration automator
-    automator = Automator(joint_registration_list)
+        # Initialize registration automator
+        automator = Automator(joint_registration_list)
 
-    # Initialize email listener
-    email_listener = EmailListener(automator)
-    email_listener.start()
+        # Initialize email listener
+        email_listener = EmailListener(automator)
+        email_listener.start()
 
-    # Initialize iMessage listener
-    iMessage_listener = iMessageListener(automator)
-    iMessage_listener.start()
+        # Initialize iMessage listener
+        iMessage_listener = iMessageListener(automator)
+        iMessage_listener.start()
+
+    except FileNotFoundError:
+        print("Error: Could not find joint-registration.json. Check that the file exists in the config folder")

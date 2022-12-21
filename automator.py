@@ -178,11 +178,11 @@ class Automator:
             self.verify_setup()
 
         except FileNotFoundError as e:
-            print("Could not find {}. Check that the file exists in the root directory".format(e.filename))
+            print("Error: Could not find {}. Check that the file exists in the config folder".format(e.filename))
             exit()
 
         except KeyError:
-            print("credentials.json is missing one or more important key-values")
+            print("Error: credentials.json is missing one or more important key-values")
             exit()
 
         print("Automator: Initialized")
@@ -197,10 +197,10 @@ class Automator:
             expiration_timestamp = check_credentials_expiration()
 
             if expiration_timestamp is not None:
-                print("Automator: Cookies active. Will expire in {} days on {}".format((expiration_timestamp - datetime.now()).days, expiration_timestamp.date()))
+                print("Automator: Verified active. Will expire in {} days on {}".format((expiration_timestamp - datetime.now()).days, expiration_timestamp.date()))
                 return
             else:
-                print("Automator: Cookies expired. Must regenerate")
+                print("Automator: Detected cookies expired. Must regenerate")
         else:
             print("Automator: credentials.json has been altered. Must re-verify credentials")
 

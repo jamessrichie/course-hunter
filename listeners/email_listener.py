@@ -23,7 +23,7 @@ class EmailListener(Listener):
 
         # Load JSON file containing credentials and log into Gmail account
         try:
-            credentials_file = open("credentials.json", "r")
+            credentials_file = open("config/credentials.json", "r")
             credentials = json.load(credentials_file)
             credentials_file.close()
 
@@ -35,11 +35,11 @@ class EmailListener(Listener):
             exit()
 
         except FileNotFoundError:
-            print("Could not find credentials.json. Check that the file exists in the root directory")
+            print("Error: Could not find credentials.json. Check that the file exists in the config folder")
             exit()
 
         except KeyError:
-            print("credentials.json is missing one or more important key-values")
+            print("Error: credentials.json is missing one or more important key-values")
             exit()
 
     # Scans inbox for unread Notify.UW emails
