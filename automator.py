@@ -291,8 +291,6 @@ class Automator:
             print("Automator: Registration page looks different than expected. "
                   "Please confirm that the registration page is not down")
 
-        input()
-
         # Clicks the submit button
         browser.find_elements(By.TAG_NAME, "input")[-1].click()
 
