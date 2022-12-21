@@ -7,9 +7,12 @@ from email import policy
 from listeners.listener import Listener
 
 
-class EmailListener(Listener):
+TARGET_SENDER = "\"Notify.UW\" <notify-noreply@uw.edu>"  # Notify.UW email address
 
-    TARGET_SENDER = "\"Notify.UW\" <notify-noreply@uw.edu>"  # Notify.UW email address
+SLN_REGEX = "SLN: ([0-9]{5})"
+
+
+class EmailListener(Listener):
 
     # Initialize object and establish connection to Gmail server
     def __init__(self, automator):
@@ -50,8 +53,8 @@ class EmailListener(Listener):
             status, payload = self.mail.fetch(index, '(RFC822)')
             message = email.message_from_bytes(payload[0][1], policy=policy.SMTP)
 
-            if message['From'] == self.TARGET_SENDER:
-                regex_result = re.search(self.SLN_REGEX, str(message))
+            if message['From'] == TARGET_SENDER:
+                regex_result = re.search(SLN_REGEX, str(message))
 
                 if regex_result is not None:
                     sln_code = regex_result.group(1)

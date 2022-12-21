@@ -50,11 +50,17 @@ def extract_credentials_hash():
 def check_credentials_integrity():
     credentials_hash = extract_credentials_hash()
 
-    hash_file = open("hash.txt", "r")
-    stored_hash = hash_file.readline()
-    hash_file.close()
+    try:
+        hash_file = open("hash.txt", "r")
+        stored_hash = hash_file.readline()
+        hash_file.close()
 
-    return credentials_hash == stored_hash
+        return credentials_hash == stored_hash
+
+    except FileNotFoundError:
+        hash_file = open("hash.txt", "w")
+        hash_file.close()
+        return False
 
 
 # Checks that credentials are still valid
@@ -63,7 +69,7 @@ def check_credentials_expiration():
     expiration_timestamp = datetime.fromtimestamp(credentials_file["expiration"])
 
     if expiration_timestamp > datetime.now() + timedelta(days=EXPIRATION_GRACE_PERIOD):
-        return str(expiration_timestamp)
+        return expiration_timestamp
     else:
         return None
 
@@ -163,41 +169,40 @@ def wait_for_registration_page(browser):
 class Automator:
 
     # Initialize object and verify NetID credentials
-    def __init__(self, JOINT_SLN_CODES_LIST):
-        self.JOINT_SLN_CODES_LIST = JOINT_SLN_CODES_LIST
+    def __init__(self, joint_registration_list):
+        self.joint_registration_list = joint_registration_list
 
         # Load JSON file containing credentials and generate cookies
         try:
             self.form_fields, self.uw_optin, self.uw_remember_me = generate_cookies()
             self.verify_setup()
 
-        except FileNotFoundError:
-            print("Could not find credentials.json. Check that the file exists in the root directory")
+        except FileNotFoundError as e:
+            print("Could not find {}. Check that the file exists in the root directory".format(e.filename))
             exit()
 
-        """
-        except KeyError as e:
-            print(e)
+        except KeyError:
             print("credentials.json is missing one or more important key-values")
             exit()
-        """
 
         print("Automator: Initialized")
 
     # Verifies that UW credentials are valid
     def verify_setup(self):
+        # Verify that credentials.json has not been changed
         if check_credentials_integrity():
-            print("Automator: Verified credentials integrity")
+            print("Automator: Verified credentials.json integrity")
 
+            # Check that stored credentials have not expired
             expiration_timestamp = check_credentials_expiration()
 
             if expiration_timestamp is not None:
-                print("Automator: Cookies active. Will expire on " + str(expiration_timestamp))
+                print("Automator: Cookies active. Will expire in {} days on {}".format((expiration_timestamp - datetime.now()).days, expiration_timestamp.date()))
                 return
             else:
                 print("Automator: Cookies expired. Must regenerate")
         else:
-            print("Automator: Credentials integrity compromised. Must re-verify")
+            print("Automator: credentials.json has been altered. Must re-verify credentials")
 
         update_credentials("uw_remember_me_cookie", "")
         self.form_fields, self.uw_optin, self.uw_remember_me = generate_cookies()
@@ -210,21 +215,40 @@ class Automator:
         browser.get(MYUW_URL)
 
         # Login to MyUW
-        self.login_2fa(browser)
+        if not self.login_2fa(browser):
+            print("Automator: Could not log into UW NetID. Check your UW NetID credentials")
+
+        # Logout of MyUW
+        browser.get(MYUW_URL + "/logout/")
+        browser.get(MYUW_URL)
+
+        # Download cookies from login page
+        cookie = list(filter(lambda elt: "uw-rememberme-" in elt["name"], browser.get_cookies()))[0]
+
+        # Update in-memory cookies
+        update_credentials("uw_remember_me_cookie", cookie["value"])
+        update_credentials("expiration", cookie["expiry"])
+        self.form_fields, self.uw_optin, self.uw_remember_me = generate_cookies()
+
+        # Verify cookies by logging into MyUW
+        self.login(browser)
 
         # Wait for redirect to MyUW
         if not wait_for_myuw_page(browser):
-            self.login_2fa(browser)
+            print("Automator: Please confirm that MyUW is not down and restart the program")
+            exit()
 
         # Close browser once finished
         browser.close()
 
-        # Record that credentials have been verified
+        # Update stored hash
         update_stored_hash()
+
+        print("Automator: Credentials verified")
 
     # Registers the supplied SLN code
     def register(self, sln_code):
-        joint_add_sln_codes, joint_drop_sln_codes = self.get_joint_sln_codes(sln_code)
+        joint_add_sln_codes, joint_drop_sln_codes = self.get_joint_registration(sln_code)
 
         try:
             # Open the Safari browser
@@ -242,26 +266,25 @@ class Automator:
             print("Automator: Failed to send SLN(s): {} to registration".format(",".join(joint_add_sln_codes)))
             return
 
-        # Populate the add SLN forms
+        # Populate the SLN form
         sln_index = 0
         table_index = 1
-        drop_indexes = []
         while sln_index < len(joint_add_sln_codes):
             input_field = browser.find_element(By.NAME, f"sln{table_index}")
             input_field_value = input_field.get_attribute('value')
 
+            # If input field is empty, it is editable. Then add SLN code
             if input_field_value == "":
                 input_field.send_keys(joint_add_sln_codes[sln_index])
                 sln_index += 1
+
+            # If input field is not empty, it stores an SLN code
+            # If we want to drop this SLN code, click the associated checkbox
             elif input_field_value in joint_drop_sln_codes:
-                drop_indexes.append(table_index)
+                check_box = browser.find_element(By.NAME, f"action{table_index}")
+                check_box.click()
 
             table_index += 1
-
-        # Click the drop SLN checkboxes
-        for drop_index in drop_indexes:
-            check_box = browser.find_element(By.NAME, f"action{drop_index}")
-            check_box.click()
 
         # Clicks the submit button
         browser.find_elements(By.TAG_NAME, "input")[-1].click()
@@ -269,6 +292,7 @@ class Automator:
         # Allow delay for registration page to refresh
         time.sleep(1)
 
+        # Interpret the displayed status
         if not wait_for_registration_page(browser):
             print("Automator: Sent SLN(s): {} to registration, ".format(",".join(joint_add_sln_codes)) +
                   "but timed out before being able to confirm your registration status")
@@ -315,24 +339,16 @@ class Automator:
             browser.get(MYUW_URL)
             self.login_2fa(browser)
 
-        browser.get(MYUW_URL + "/logout/")
-        browser.get(MYUW_URL)
-
-        cookie = list(filter(lambda elt: "uw-rememberme-" in elt["name"], browser.get_cookies()))[0]
-
-        update_credentials("uw_remember_me_cookie", cookie["value"])
-        update_credentials("expiration", cookie["expiry"])
-        self.form_fields, self.uw_optin, self.uw_remember_me = generate_cookies()
-
-        return self.login(browser)
+        return True
 
     # Returns all SLN codes that must be added and dropped jointly with the supplied SLN code
-    def get_joint_sln_codes(self, sln_code):
-        for joint_sln_codes in self.JOINT_SLN_CODES_LIST:
+    def get_joint_registration(self, sln_code):
+        for joint_registration in self.joint_registration_list:
 
-            joint_add_sln_codes = joint_sln_codes[0]
-            joint_drop_sln_codes = joint_sln_codes[1]
+            joint_add_sln_codes = joint_registration["add"]
+            joint_drop_sln_codes = joint_registration["drop"]
 
             if sln_code in joint_add_sln_codes:
                 return joint_add_sln_codes, joint_drop_sln_codes
+
         return [sln_code], []

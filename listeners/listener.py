@@ -4,8 +4,6 @@ from threading import Thread
 # Listener interface
 class Listener:
 
-    SLN_REGEX = "SLN: ([0-9]{5})"
-
     def __init__(self, name, automator):
         self.name = name
         self.automator = automator
