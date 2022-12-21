@@ -28,9 +28,9 @@ class iMessageListener(Listener):
                 date = [int(i) for i in regex_result.group(1).split("-")]
                 time = [int(i) for i in regex_result.group(2).split(":")]
 
-                dt = datetime(date[0], date[1], date[2], time[0], time[1], time[2])
+                timestamp = datetime(date[0], date[1], date[2], time[0], time[1], time[2])
 
-                if dt >= datetime.now() - timedelta(seconds=30):
+                if timestamp >= datetime.now() - timedelta(seconds=30):
                     return True
 
         return False

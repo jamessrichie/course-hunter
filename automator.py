@@ -2,6 +2,8 @@ import json
 import time
 import hashlib
 import selenium
+from datetime import datetime, timedelta
+
 from selenium import webdriver
 from selenium.common import TimeoutException
 from selenium.webdriver.common.by import By
@@ -9,23 +11,156 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 
+# URL of MyUW page
+MYUW_URL = "https://my.uw.edu"
+
+# URL of registration page
+REGISTRATION_URL = "https://sdb.admin.uw.edu/students/uwnetid/register.asp"
+
+# URL loading timeout
+TIMEOUT = 10
+
+# URL loading timeout for possibly slow services. You may want to increase this
+# to up to 150 when expecting slow services such as during registration periods
+TIMEOUT_LONG = 60
+
+# Timeout before Duo 2FA login session expires
+TIMEOUT_2FA = 60
+
+# If credentials are expiring within this grace period, we will preemptively generate new ones
+EXPIRATION_GRACE_PERIOD = 5
+
+
+# Converts credentials.json into a dict
+def extract_credentials():
+    credentials_file = open("credentials.json", "r")
+    credentials = json.load(credentials_file)
+    credentials_file.close()
+
+    return credentials
+
+
+# Generates the hash for contents of credentials.json
+def extract_credentials_hash():
+    credentials = extract_credentials()
+    return hashlib.md5(json.dumps(credentials).encode()).hexdigest()
+
+
+# Checks that credentials.json has not been altered
+def check_credentials_integrity():
+    credentials_hash = extract_credentials_hash()
+
+    hash_file = open("hash.txt", "r")
+    stored_hash = hash_file.readline()
+    hash_file.close()
+
+    return credentials_hash == stored_hash
+
+
+# Checks that credentials are still valid
+def check_credentials_expiration():
+    credentials_file = extract_credentials()
+    expiration_timestamp = datetime.fromtimestamp(credentials_file["expiration"])
+
+    if expiration_timestamp > datetime.now() + timedelta(days=EXPIRATION_GRACE_PERIOD):
+        return str(expiration_timestamp)
+    else:
+        return None
+
+
+# Creates/updates a key-value pair in credentials.json
+def update_credentials(key, value):
+    credentials = extract_credentials()
+    credentials[key] = value
+
+    credentials_file = open("credentials.json", "w")
+    json.dump(credentials, credentials_file, indent=2, sort_keys=True)
+    credentials_file.close()
+
+
+# Updates the stored hash in hash.txt
+def update_stored_hash():
+    credentials_hash = extract_credentials_hash()
+
+    hash_file = open("hash.txt", "w")
+    hash_file.write(credentials_hash)
+    hash_file.close()
+
+
+# Builds cookies from credentials.json
+def generate_cookies():
+    credentials = extract_credentials()
+
+    # Set the form field names and values
+    form_fields = {
+        "weblogin_netid": credentials["uw_netid"],
+        "weblogin_password": credentials["uw_netid_password"]
+    }
+
+    # Web cookie asserting 2FA 'Remember Me' is enabled for this web client
+    uw_optin = {
+        "name": "uw-optin-" + credentials["uw_netid"],
+        "value": "yes"
+    }
+
+    # Web cookie verifying 2FA 'Remember Me' is enabled for this web client
+    uw_remember_me = {
+        "name": "uw-rememberme-" + credentials["uw_netid"],
+        "value": credentials["uw_remember_me_cookie"]
+    }
+
+    return form_fields, uw_optin, uw_remember_me
+
+
+# Wait for MyUW page to load
+def wait_for_myuw_page(browser):
+    try:
+        element_present = EC.presence_of_element_located((By.CLASS_NAME, 'myuw-body'))
+        WebDriverWait(browser, TIMEOUT_2FA).until(element_present)
+        return True
+
+    except TimeoutException:
+        print("Automator: Timed out waiting for MyUW page to load")
+        return False
+
+
+# Wait for login page to load
+def wait_for_login_page(browser):
+    try:
+        element_present = EC.presence_of_element_located((By.ID, 'uwsignin'))
+        WebDriverWait(browser, TIMEOUT).until(element_present)
+        return True
+
+    except TimeoutException:
+        print("Automator: Timed out waiting for login page to load")
+        return False
+
+
+# Wait for 2FA page to load
+def wait_for_2fa_page(browser):
+    try:
+        element_present = EC.presence_of_element_located((By.NAME, 'rememberme'))
+        WebDriverWait(browser, TIMEOUT_2FA).until(element_present)
+        return True
+
+    except TimeoutException:
+        print("Automator: Timed out waiting for 2FA page to load")
+        return False
+
+
+# Wait for registration page to load
+def wait_for_registration_page(browser):
+    try:
+        element_visible = EC.visibility_of_element_located((By.ID, 'doneDiv'))
+        WebDriverWait(browser, TIMEOUT_LONG).until(element_visible)
+        return True
+
+    except TimeoutException:
+        print("Automator: Timed out waiting for registration page to load")
+        return False
+
+
 class Automator:
-
-    # URL of test page
-    TEST_URL = "https://my.uw.edu"
-
-    # URL of registration page
-    TARGET_URL = "https://sdb.admin.uw.edu/students/uwnetid/register.asp"
-
-    # URL of login page
-    WAIT_URL = "https://idp.u.washington.edu"
-
-    # URL loading timeout
-    TIMEOUT = 10
-
-    # URL loading timeout for possibly slow services. You may want to increase this
-    # to up to 150 when expecting slow services such as during registration periods
-    TIMEOUT_LONG = 60
 
     # Initialize object and verify NetID credentials
     def __init__(self, JOINT_SLN_CODES_LIST):
@@ -33,74 +168,59 @@ class Automator:
 
         # Load JSON file containing credentials and generate cookies
         try:
-            credentials_file = open("credentials.json", "r")
-            credentials = json.load(credentials_file)
-
-            # Web cookie asserting 2FA 'Remember Me' is enabled for this web client
-            self.uw_optin = {
-                "name": "uw-optin-" + credentials["uw_netid"],
-                "value": "yes"
-            }
-
-            # Web cookie verifying 2FA 'Remember Me' is enabled for this web client
-            self.uw_remember_me = {
-                "name": "uw-rememberme-" + credentials["uw_netid"],
-                "value": credentials["uw_remember_me_cookie"]
-            }
-
-            # Set the form field names and values
-            self.form_fields = {
-                "weblogin_netid": credentials["uw_netid"],
-                "weblogin_password": credentials["uw_netid_password"]
-            }
-            self.verify_setup(credentials_file)
-            credentials_file.close()
+            self.form_fields, self.uw_optin, self.uw_remember_me = generate_cookies()
+            self.verify_setup()
 
         except FileNotFoundError:
             print("Could not find credentials.json. Check that the file exists in the root directory")
             exit()
 
-        except KeyError:
+        """
+        except KeyError as e:
+            print(e)
             print("credentials.json is missing one or more important key-values")
             exit()
+        """
+
+        print("Automator: Initialized")
 
     # Verifies that UW credentials are valid
-    def verify_setup(self, credentials_file):
-        f = open("hash.txt", "r+")
-        stored_credentials_hash = f.readline()
-        credentials_hash = str(hashlib.md5(credentials_file.read().encode("utf-8")).hexdigest())
+    def verify_setup(self):
+        if check_credentials_integrity():
+            print("Automator: Verified credentials integrity")
 
-        # Check if credentials match those already verified
-        if stored_credentials_hash == credentials_hash:
-            print("Automator: Initialized")
-            return
+            expiration_timestamp = check_credentials_expiration()
+
+            if expiration_timestamp is not None:
+                print("Automator: Cookies active. Will expire on " + str(expiration_timestamp))
+                return
+            else:
+                print("Automator: Cookies expired. Must regenerate")
+        else:
+            print("Automator: Credentials integrity compromised. Must re-verify")
+
+        update_credentials("uw_remember_me_cookie", "")
+        self.form_fields, self.uw_optin, self.uw_remember_me = generate_cookies()
 
         # Open the Safari browser
         browser = webdriver.Safari()
         browser.set_window_size(1300, 800)
 
         # Go to MyUW
-        browser.get(self.TEST_URL)
+        browser.get(MYUW_URL)
 
         # Login to MyUW
-        self.login(browser)
+        self.login_2fa(browser)
 
         # Wait for redirect to MyUW
-        try:
-            element_present = EC.presence_of_element_located((By.CLASS_NAME, 'myuw-body'))
-            WebDriverWait(browser, self.TIMEOUT).until(element_present)
-            print("Automator: Initialized")
-
-        except TimeoutException:
-            print("Automator: Incorrect setup. Check your UW Net ID credentials and 2FA cookies")
-            exit()
+        if not wait_for_myuw_page(browser):
+            self.login_2fa(browser)
 
         # Close browser once finished
         browser.close()
 
         # Record that credentials have been verified
-        f.write(credentials_hash)
-        f.close()
+        update_stored_hash()
 
     # Registers the supplied SLN code
     def register(self, sln_code):
@@ -115,10 +235,10 @@ class Automator:
             raise Exception(sln_code)
 
         # Go to the registration page
-        browser.get(self.TARGET_URL)
+        browser.get(REGISTRATION_URL)
 
         # If login failed or could not reach registration page, then exit
-        if not self.login(browser) or not self.wait_for_registration_page(browser):
+        if not self.login(browser) or not wait_for_registration_page(browser):
             print("Automator: Failed to send SLN(s): {} to registration".format(",".join(joint_add_sln_codes)))
             return
 
@@ -149,7 +269,7 @@ class Automator:
         # Allow delay for registration page to refresh
         time.sleep(1)
 
-        if not self.wait_for_registration_page(browser):
+        if not wait_for_registration_page(browser):
             print("Automator: Sent SLN(s): {} to registration, ".format(",".join(joint_add_sln_codes)) +
                   "but timed out before being able to confirm your registration status")
 
@@ -166,43 +286,9 @@ class Automator:
             print("Automator: Sent SLN(s): {} to registration, ".format(",".join(joint_add_sln_codes)) +
                   "but could not interpret the displayed registration status")
 
-    # Returns all SLN codes that must be added and dropped jointly with the supplied SLN code
-    def get_joint_sln_codes(self, sln_code):
-        for joint_sln_codes in self.JOINT_SLN_CODES_LIST:
-
-            joint_add_sln_codes = joint_sln_codes[0]
-            joint_drop_sln_codes = joint_sln_codes[1]
-
-            if sln_code in joint_add_sln_codes:
-                return joint_add_sln_codes, joint_drop_sln_codes
-        return [sln_code], []
-
-    # Wait for login page to load
-    def wait_for_login_page(self, browser):
-        try:
-            element_present = EC.presence_of_element_located((By.ID, 'uwsignin'))
-            WebDriverWait(browser, self.TIMEOUT).until(element_present)
-            return True
-
-        except TimeoutException:
-            print("Automator: Timed out waiting for login page to load")
-            return False
-
-    # Wait for registration page to load
-    def wait_for_registration_page(self, browser):
-        try:
-            element_visible = EC.visibility_of_element_located((By.ID, 'doneDiv'))
-            WebDriverWait(browser, self.TIMEOUT_LONG).until(element_visible)
-            return True
-
-        except TimeoutException:
-            print("Automator: Timed out waiting for registration page to load")
-            return False
-
-    # Logs into the configured UW NetID account
+    # Log into the configured UW NetID account
     def login(self, browser):
-
-        if not self.wait_for_login_page(browser):
+        if not wait_for_login_page(browser):
             return False
 
         # Load 2FA bypass cookies
@@ -217,3 +303,36 @@ class Automator:
         browser.find_element(By.ID, "submit_button").click()
 
         return True
+
+    # Log into the configured UW NetID account and handle 2FA
+    def login_2fa(self, browser):
+        if not self.login(browser) or not wait_for_2fa_page(browser):
+            return False
+
+        if not wait_for_myuw_page(browser):
+            print("Automator: Duo 2FA login session expired. Repeating log in process")
+
+            browser.get(MYUW_URL)
+            self.login_2fa(browser)
+
+        browser.get(MYUW_URL + "/logout/")
+        browser.get(MYUW_URL)
+
+        cookie = list(filter(lambda elt: "uw-rememberme-" in elt["name"], browser.get_cookies()))[0]
+
+        update_credentials("uw_remember_me_cookie", cookie["value"])
+        update_credentials("expiration", cookie["expiry"])
+        self.form_fields, self.uw_optin, self.uw_remember_me = generate_cookies()
+
+        return self.login(browser)
+
+    # Returns all SLN codes that must be added and dropped jointly with the supplied SLN code
+    def get_joint_sln_codes(self, sln_code):
+        for joint_sln_codes in self.JOINT_SLN_CODES_LIST:
+
+            joint_add_sln_codes = joint_sln_codes[0]
+            joint_drop_sln_codes = joint_sln_codes[1]
+
+            if sln_code in joint_add_sln_codes:
+                return joint_add_sln_codes, joint_drop_sln_codes
+        return [sln_code], []
