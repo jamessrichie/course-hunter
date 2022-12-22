@@ -37,7 +37,7 @@ iMessages.
 1. Clone the Git repository.
 2. Navigate to the Course-Hunter root directory and run `setup.sh`.
 
-        terminal% sh setup.sh
+        sh setup.sh
 
 3. Grant all requested permissions.
 
@@ -62,9 +62,9 @@ goes wrong, continue reading for manual setup instructions.
 Course-Hunter requires the following Python packages to run.
 
 ```
-terminal% pip3 install DateTime
-terminal% pip3 install selenium
-terminal% pip3 install imessage-reader
+pip3 install DateTime
+pip3 install selenium
+pip3 install imessage-reader
 ```
 
 #### Manually Configuring Git
@@ -216,7 +216,7 @@ from the other group.
 
 You're all set! Navigate to the Course-Hunter root directory and run `main.py` to start the program.
 
-    terminal% python main.py
+    python main.py
 
 On your first run, Course-Hunter will log into your UW NetID account and you will be asked to verify the login on your
 2FA device. On subsequent runs, Course-Hunter will automatically bypass 2FA and start running immediately. You will
