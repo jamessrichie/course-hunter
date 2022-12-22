@@ -85,7 +85,7 @@ The 'config' folder stores all the configuration files for Course-Hunter.
 
 This file stores your UW NetID credentials. If you choose to enable the email listener, this file also stores your
 Gmail account credentials. Note that the field `gmail_app_password` is _not_ your Gmail account password. We will
-discuss how to generate a Gmail app password under ['Setting up Your Course-Hunter Email.'](#setup-email)
+discuss how to generate a Gmail app password under ['Setting up Your Email for the Email Listener.'](#setup-email)
 
 #### Configuring `joint-registration.json`
 
@@ -144,12 +144,14 @@ When Course-Hunter detects that either SLN: 10000 or 11000 is available, it will
 11000 and drop SLN: 12000 simultaneously. It will _not_ add or drop anything from the other group.
 </details>
 
-##### Noteworthy Edge Cases
+<details>
+  <summary><h4 style="display: inline">Noteworthy Edge Cases</h4></summary>
 
-* You are allowed to specify the same add SLN code in multiple groups. When Course-Hunter detects that this course is
-  available, it will only consider the first group that contains this add SLN code.
-* If you specify a drop SLN code for a class you are not registered for, Course-Hunter will ignore the drop SLN code and
-  proceed as usual.
+  * You are allowed to specify the same add SLN code in multiple groups. When Course-Hunter detects that this course is
+    available, it will only consider the first group that contains this add SLN code.
+  * If you specify a drop SLN code for a class you are not registered for, Course-Hunter will ignore the drop SLN code and
+    proceed as usual.
+</details>
 
 ### <span id="setup-email">Setting up Your Email for the Email Listener</span>
 
