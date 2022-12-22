@@ -33,4 +33,4 @@ class TimeListener(Listener):
             try:
                 self.automator.register(self.sln_code)
             except Exception:
-                print(f"Email Listener: Could not register since another listener is currently controlling Safari")
+                print(f"Time Listener: Could not register since another listener is currently controlling Safari")
