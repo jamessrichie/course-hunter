@@ -14,8 +14,9 @@ try
             end tell
             click button 1 of window 1
             click menu item "Allow Remote Automation" of menu 1 of menu bar item "Develop" of menu bar 1
-            log "Finished Safari setup"
         end tell
+        tell application "Safari" to quit saving no
+        log "Finished Safari setup"
     end tell
 on error
     log "Failed Safari setup. Check the README to see how to set up Safari manually"
