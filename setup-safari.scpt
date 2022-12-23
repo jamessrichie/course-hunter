@@ -51,4 +51,5 @@ on setupSafari()
 end
 
 
+log "Setting up Safari..."
 setupSafari()
