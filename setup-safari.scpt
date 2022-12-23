@@ -1,4 +1,4 @@
-try
+on setupSafari()
     tell application "System Events"
         tell application "Safari" to quit saving no
         delay 1
@@ -15,9 +15,23 @@ try
             click button 1 of window 1
             click menu item "Allow Remote Automation" of menu 1 of menu bar item "Develop" of menu bar 1
         end tell
-        tell application "Safari" to quit saving no
         log "Finished Safari setup"
     end tell
-on error
-    log "Failed Safari setup. Check the README to see how to set up Safari manually"
+end
+
+try
+    setupSafari()
+
+on error error_message number error_number
+
+    if error_number = -1743 then
+        log "Please enable 'Privacy & Security' > 'Automation' > 'Terminal' > 'System Events' before restarting setup.sh"
+
+    else if error_number = -1719 then
+        log "Please enable 'Privacy & Security' > 'Accessibility' > 'Terminal' before restarting setup.sh"
+
+    else
+        log "Failed Safari setup. " & error_message & " (" & error_number & "). Check the README to see how to set up Safari manually"
+    end if
 end try
+tell application "Safari" to quit saving no

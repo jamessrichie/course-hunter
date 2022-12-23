@@ -54,7 +54,8 @@ goes wrong, continue reading for manual setup instructions.
 
 1. Go to 'System Settings' > 'Privacy & Security.'
 2. Make sure 'Full Disk Access' > 'Terminal' is selected.
-3. Make sure 'Automation' > 'Terminal' > 'System Events' is selected.
+3. Make sure 'Accessibility' > 'Terminal' is selected.
+4. Make sure 'Automation' > 'Terminal' > 'System Events' is selected.
 
 #### Manually Setting up Python 3
 
