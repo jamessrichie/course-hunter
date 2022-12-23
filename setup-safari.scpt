@@ -24,15 +24,14 @@ on setupSafari()
         tell application "Safari" to quit saving no
 
         if error_number = -1743 or error_number = -1719 then
+
             if error_number = -1743 then
                 log "Please enable 'Privacy & Security' > 'Automation' > 'Terminal' > 'System Events'"
-
             else if error_number = -1719 then
                 log "Please enable 'Privacy & Security' > 'Accessibility' > 'Terminal'"
             end if
 
             log "Once enabled, close System Settings to continue setup"
-
             delay 2
 
             tell application "System Settings" to activate
@@ -41,7 +40,6 @@ on setupSafari()
             end repeat
 
             log "Continuing setup"
-            
             setupSafari()
 
         else
@@ -49,7 +47,6 @@ on setupSafari()
         end if
     end try
 end
-
 
 log "Setting up Safari..."
 setupSafari()
