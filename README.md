@@ -1,9 +1,9 @@
 # course-hunter
 
 Course-Hunter automates your browser to register for courses as soon as a trigger event occurs. This trigger
-event could be a text message, an email, or a specified time, depending on the listener function used.
-* Course-Hunter is designed to work with macOS and Safari, but should require minimal modifications to work
-  with other operating systems and browsers.
+event could be a text message, an email, or a specific time.
+* Course-Hunter is designed to work with macOS and Safari, but should be easily modified for other operating systems
+  and browsers.
 
 
 ## Disclaimer
@@ -11,7 +11,7 @@ event could be a text message, an email, or a specified time, depending on the l
   purely as a proof of concept and a personal exploration into Web automation.
 * The developers strictly discourage the use and distribution of Course-Hunter for actual registration purposes.
 * The developers are not responsible for any issues that arise from its use, including software bugs, registration
-  mistakes, and sanctions from UW.
+  errors, and sanctions from UW.
 
 
 
@@ -24,12 +24,11 @@ in Python 3.9 (x86 version).
 
 #### Email Listener
 
-Course-Hunter's email listener requires a Gmail account. This can be a dummy account and does not have to be monitored.
+Course-Hunter's email listener requires full access to a Gmail account.
 
 #### Text Message Listener
 
-Course-Hunter's text message listener requires an iPhone, a MacBook, and an iCloud account with enough storage to sync
-iMessages.
+Course-Hunter's text message listener requires an iPhone, a Mac, and an iCloud account with sufficient cloud storage.
 
 
 ### Installation
@@ -84,7 +83,7 @@ The 'config' folder stores all the configuration files for Course-Hunter.
 #### Configuring `credentials.json`
 
 This file stores your UW NetID credentials. If you choose to enable the email listener, this file also stores your
-Gmail account credentials. Note that the field `gmail_app_password` is _not_ your Gmail account password. We will
+Gmail account credentials. Note that the field `gmail_app_password` is _not_ your Gmail account password. We
 discuss how to generate a Gmail app password under ['Setting up Your Email for the Email Listener.'](#setup-email)
 
 #### Configuring `joint-registration.json`
@@ -167,7 +166,7 @@ connect to your email.
 7. Select 'Mail' as your app and 'Mac' as your device and generate the app password.
 8. Store this app password in the field `gmail_app_password` in `credentials.json`.
 
-To start the email listener, create an `EmailListener` object and call `start()`.
+To start the email listener, create an `EmailListener` instance and call `start()`.
 
 
 ### Setting up iMessage for the Text Message Listener
@@ -181,15 +180,15 @@ phone's text messages from a computer, we will make use of iCloud's iMessage syn
 3. On your MacBook, open 'Messages' and in the menu bar, choose 'Messages' > 'Settings…', click 'iMessage', then select
    'Enable Messages in iCloud.'
 
-To start the text message listener, create an `iMessageListener` object and call `start()`.
+To start the text message listener, create an `iMessageListener` instance and call `start()`.
 
 
 ### Setting up the Time Listener
 
-Course-Hunter's time listener will trigger at a specified time, adding and dropping courses from the first group in
+Course-Hunter's time listener will trigger at a specific time, adding and dropping courses from the first group in
 `joint-registration.json`.
 
-To start the time listener, create a `TimeListener` object and call `start()`.
+To start the time listener, create a `TimeListener` instance and call `start()`.
 * You are allowed to create multiple `TimeListener` instances to trigger at various times
 
 <details>
