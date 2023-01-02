@@ -19,6 +19,10 @@ class TimeListener(Listener):
 
         # Get the first SLN code in the joint registration list
         # When Automator receives this, it will register all SLN codes in the list
+        if len(joint_registration_list) == 0:
+            print("Time Listener: Unable to initialize Time Listener with an empty joint registration list")
+            exit()
+
         self.sln_code = joint_registration_list[0]["add"][0]
 
         print("Time Listener: Initialized")

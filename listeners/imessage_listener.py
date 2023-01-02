@@ -55,7 +55,7 @@ class iMessageListener(Listener):
             while index < len(messages):
                 message = messages[index]
 
-                regex_result = re.search("SLN: ([0-9]{5})", str(message))
+                regex_result = re.search(SLN_REGEX, str(message))
 
                 if regex_result is not None:
                     sln_code = regex_result.group(1)
