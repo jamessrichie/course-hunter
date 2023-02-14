@@ -307,7 +307,7 @@ class Automator:
                   .format(",".join(joint_add_sln_codes)))
 
         elif "Schedule updated." in browser.page_source:
-            print("Automator: Successfully registered for SLN(s): {}", end="".format(",".join(joint_add_sln_codes)))
+            print("Automator: Successfully registered for SLN(s): {}".format(",".join(joint_add_sln_codes)), end="")
 
             if len(joint_drop_sln_codes) > 0:
                 print("and dropped SLN(s): {}".format(",".join(joint_drop_sln_codes)))
