@@ -21,6 +21,10 @@ class EmailListener(Listener):
         # Establish an IMAP connection to Gmail server
         self.mail = imaplib.IMAP4_SSL("imap.gmail.com", 993)
 
+        self.login()
+
+    # Log into the configured Gmail server
+    def login(self):
         # Load JSON file containing credentials and log into Gmail account
         try:
             credentials_file = open("config/credentials.json", "r")
@@ -45,7 +49,15 @@ class EmailListener(Listener):
     # Scans inbox for unread Notify.UW emails
     def listener_task(self):
         # Extracts all unread messages
-        self.mail.select('Inbox')
+        try:
+            self.mail.select('Inbox')
+
+        except TimeoutError:
+            # Establish a new IMAP connection to Gmail server
+            self.mail = imaplib.IMAP4_SSL("imap.gmail.com", 993)
+            self.login()
+            self.mail.select('Inbox')
+
         status, data = self.mail.search(None, '(UNSEEN)')
 
         for index in data[0].split():
